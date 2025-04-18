@@ -27,9 +27,7 @@ impl Blockchain {
         for block in &self.blocks {
             for transaction in &block.transactions {
                 for input in &transaction.inputs {
-                    self.utxos.remove(&Hash(U256::from_little_endian(
-                        &input.prev_transaction_output_hash,
-                    )));
+                    self.utxos.remove(&input.prev_transaction_output_hash);
                 }
                 for output in &transaction.outputs {
                     self.utxos.insert(transaction.hash(), output.clone());
@@ -103,22 +101,15 @@ impl Block {
             let mut input_value = 0;
             let mut output_value = 0;
             for input in &transaction.inputs {
-                let prev_output = utxos.get(&Hash(U256::from_little_endian(
-                    &input.prev_transaction_output_hash,
-                )));
+                let prev_output = utxos.get(&input.prev_transaction_output_hash);
                 if prev_output.is_none() {
                     return Err(BtcError::InvalidTransaction);
                 }
                 let prev_output = prev_output.unwrap();
-                if inputs.contains_key(&Hash(U256::from_little_endian(
-                    &input.prev_transaction_output_hash,
-                ))) {
+                if inputs.contains_key(&input.prev_transaction_output_hash) {
                     return Err(BtcError::InvalidTransaction);
                 }
-                let hash = Hash(U256::from_little_endian(
-                    &input.prev_transaction_output_hash,
-                ));
-                if !input.signature.verify(&hash, &prev_output.pubkey) {
+                if !input.signature.verify(&input.prev_transaction_output_hash, &prev_output.pubkey) {
                     return Err(BtcError::InvalidSignature);
                 }
             }
@@ -164,22 +155,16 @@ impl Block {
 
         for transaction in self.transactions.iter().skip(1) {
             for input in &transaction.inputs {
-                let prev_output = utxos.get(&Hash(U256::from_little_endian(
-                    &input.prev_transaction_output_hash,
-                )));
+                let prev_output = utxos.get(&input.prev_transaction_output_hash);
                 if prev_output.is_none() {
                     return Err(BtcError::InvalidTransaction);
                 }
                 let prev_output = prev_output.unwrap();
-                if inputs.contains_key(&Hash(U256::from_little_endian(
-                    &input.prev_transaction_output_hash,
-                ))) {
+                if inputs.contains_key(&input.prev_transaction_output_hash) {
                     return Err(BtcError::InvalidTransaction);
                 }
                 inputs.insert(
-                    Hash(U256::from_little_endian(
-                        &input.prev_transaction_output_hash,
-                    )),
+                    input.prev_transaction_output_hash,
                     prev_output.clone(),
                 );
             }
@@ -242,7 +227,7 @@ impl Transaction {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TransactionInput {
-    pub prev_transaction_output_hash: [u8; 32],
+    pub prev_transaction_output_hash: Hash,
     pub signature: Signature,
 }
 
